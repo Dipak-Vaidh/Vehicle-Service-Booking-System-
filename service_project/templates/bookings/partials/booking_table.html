@@ -1,0 +1,38 @@
+{% for booking in page_obj %}
+<tr id="row-{{ booking.id }}">
+    <td>{{ booking.car_brand }}</td>
+    <td>{{ booking.car_model }}</td>
+    <td>{{ booking.fuel_type }}</td>
+    <td>{{ booking.service_type }}</td>
+    <td>{{ booking.service_date }}</td>
+    <td>
+        {% if booking.status == "Pending" %}
+            <span class="badge bg-warning text-dark">Pending</span>
+        {% elif booking.status == "Confirmed" %}
+            <span class="badge bg-primary">Confirmed</span>
+        {% elif booking.status == "Completed" %}
+            <span class="badge bg-success">Completed</span>
+        {% endif %}
+    </td>
+    <td>
+        <button 
+            class="btn btn-sm btn-warning mb-1 edit-btn"
+            data-id="{{ booking.id }}">
+            Edit
+        </button>
+
+        <button 
+            class="btn btn-sm btn-danger delete-btn"
+            data-id="{{ booking.id }}">
+            Delete
+        </button>
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="7" class="text-center">
+        No bookings found
+    </td>
+</tr>
+{% endfor %}    
+

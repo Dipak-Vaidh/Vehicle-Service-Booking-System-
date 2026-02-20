@@ -1,0 +1,322 @@
+{% extends 'bookings/base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+
+<div class="row">
+
+    <!-- Booking Form -->
+    <div class="col-md-5">
+        <div class="card shadow mb-4">
+            <div class="card-body">
+                <h4 class="mb-3">Book Car Service</h4>
+
+                <form method="post" id="bookingForm">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+
+                    <button type="submit" class="btn btn-primary w-100">
+                        Book Service
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Booking List -->
+    <div class="col-md-7">
+        <div class="card shadow">
+            <div class="card-body">
+                <h4 class="mb-3">Your Bookings</h4>
+
+                <!-- AJAX Filter -->
+                <form id="filterForm" class="mb-3">
+                    <select name="status" id="statusFilter" class="form-select w-50 d-inline">
+                        <option value="All">All</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Confirmed">Confirmed</option>
+                        <option value="Completed">Completed</option>
+                    </select>
+
+                    <button type="submit" class="btn btn-secondary ms-2">
+                        Filter
+                    </button>
+                </form>
+
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Brand</th>
+                            <th>Model</th>
+                            <th>Fuel</th>
+                            <th>Service</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="bookingTable">
+                        {% include 'bookings/partials/booking_table.html' %}
+                    </tbody>
+                </table>
+
+
+            </div>
+        </div>
+    </div>
+
+</div>
+<br>
+<br>
+<br>
+
+<script>
+// Brand → Model for NORMAL PAGE FORM
+$(document).on('change', '#bookingForm #id_car_brand', function () {
+
+    var brandId = $(this).val();
+    var modelSelect = $('#bookingForm #id_car_model');
+
+    modelSelect.empty().append('<option value="">Select Model</option>');
+
+    if (!brandId) return;
+
+    $.ajax({
+        url: "{% url 'ajax_load_models' %}",
+        data: { 'brand_id': brandId },
+        success: function (data) {
+            $.each(data, function (key, value) {
+                modelSelect.append(
+                    $('<option>', { value: value.id, text: value.name })
+                );
+            });
+        }
+    });
+});
+
+
+// Brand → Model for EDIT MODAL ONLY
+$(document).on('change', '#editModal #id_car_brand', function () {
+
+    var brandId = $(this).val();
+    var modelSelect = $('#editModal #id_car_model');
+
+    modelSelect.empty().append('<option value="">Select Model</option>');
+
+    if (!brandId) return;
+
+    $.ajax({
+        url: "{% url 'ajax_load_models' %}",
+        data: { 'brand_id': brandId },
+        success: function (data) {
+            $.each(data, function (key, value) {
+                modelSelect.append(
+                    $('<option>', { value: value.id, text: value.name })
+                );
+            });
+        }
+    });
+});
+</script>>
+
+<!-- Create Booking AJAX -->
+<script>
+$('#bookingForm').submit(function(e) {
+    e.preventDefault();
+
+    $.ajax({
+        url: "",
+        type: "POST",
+        data: $(this).serialize(),
+        success: function(data) {
+
+            let newRow = `
+                <tr id="row-${data.id}">
+                    <td>${data.brand}</td>
+                    <td>${data.model}</td>
+                    <td>${data.fuel}</td>
+                    <td>${data.service}</td>
+                    <td>${data.date}</td>
+                    <td>
+                        <span class="badge bg-warning text-dark">
+                            ${data.status}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="/update-booking/${data.id}/" 
+                           class="btn btn-sm btn-warning mb-1">
+                           Edit
+                        </a>
+                        <button 
+                            class="btn btn-sm btn-danger delete-btn"
+                            data-id="${data.id}">
+                            Delete
+                        </button>
+                    </td>
+                </tr>
+            `;
+
+            $('#bookingTable').prepend(newRow);
+            $('#bookingForm')[0].reset();
+        }
+    });
+});
+</script>
+
+<!-- Filter AJAX -->
+<script>
+$(document).ready(function() {
+
+    $('#filterForm').submit(function(e) {
+        e.preventDefault();
+
+        $.ajax({
+            url: "",
+            type: "GET",
+            data: $(this).serialize(),
+            success: function(data) {
+                $('#bookingTable').html(data);
+            }
+        });
+    });
+
+});
+</script>
+
+<!-- Delete AJAX (NO ALERT + FADE) -->
+<script>
+$(document).on('click', '.delete-btn', function() {
+
+    var btn = $(this);
+    var bookingId = btn.data('id');
+    var row = btn.closest('tr');
+
+    $.ajax({
+        url: "/delete-booking/" + bookingId + "/",
+        type: "POST",
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        success: function(response) {
+            if (response.success) {
+                row.fadeOut(400, function() {
+                    $(this).remove();
+                });
+            }
+        }
+    });
+
+});
+</script>
+
+<!-- Edit Booking Modal -->
+<div class="modal fade" id="editModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Edit Booking</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body" id="modalBody">
+        <!-- Form will load here -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Open Modal & Load Form
+$(document).on('click', '.edit-btn', function() {
+
+    var bookingId = $(this).data('id');
+
+    $.ajax({
+        url: "/edit-modal/" + bookingId + "/",
+        type: "GET",
+        success: function(response) {
+            $('#modalBody').html(response.html);
+            var myModal = new bootstrap.Modal(document.getElementById('editModal'));
+            myModal.show();
+        }
+    });
+
+});
+
+
+// Submit Edit Form (FULL AJAX UPDATE)
+$(document).on('submit', '#editForm', function(e) {
+    e.preventDefault();
+
+    var bookingId = $(this).data('id');
+
+    $.ajax({
+        url: "/update-booking/" + bookingId + "/",
+        type: "POST",
+        data: $(this).serialize(),
+        success: function(data) {
+
+            let updatedRow = `
+                <td>${data.brand}</td>
+                <td>${data.model}</td>
+                <td>${data.fuel}</td>
+                <td>${data.service}</td>
+                <td>${data.date}</td>
+                <td>
+                    <span class="badge ${
+                        data.status === "Pending" ? "bg-warning text-dark" :
+                        data.status === "Confirmed" ? "bg-primary" :
+                        "bg-success"
+                    }">
+                        ${data.status}
+                    </span>
+                </td>
+                <td>
+                    <button 
+                        class="btn btn-sm btn-warning mb-1 edit-btn"
+                        data-id="${data.id}">
+                        Edit
+                    </button>
+
+                    <button 
+                        class="btn btn-sm btn-danger delete-btn"
+                        data-id="${data.id}">
+                        Delete
+                    </button>
+                </td>
+            `;
+
+            let row = $('#row-' + data.id);
+
+            row.fadeOut(200, function() {
+                row.html(updatedRow).fadeIn(200);
+            });
+
+            var modal = bootstrap.Modal.getInstance(document.getElementById('editModal'));
+            modal.hide();
+        }
+    });
+
+});
+</script> 
+
+
+<script>
+$(document).on('click', '.page-link-ajax', function(e) {
+    e.preventDefault();
+
+    var url = $(this).attr('href');
+
+    $.ajax({
+        url: url,
+        type: "GET",
+        success: function(data) {
+            $('#bookingTable').html(data);
+        }
+    });
+});
+</script>
+
+{% endblock %}

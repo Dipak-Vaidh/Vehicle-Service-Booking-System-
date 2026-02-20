@@ -1,0 +1,46 @@
+{% extends 'bookings/base.html' %}
+
+{% block title %}Update Booking{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-body">
+                <h4 class="mb-4">Update Booking</h4>
+
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+
+                    <button type="submit" class="btn btn-success w-100">
+                        Update Booking
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $('#id_car_brand').change(function () {
+        var brandId = $(this).val();
+
+        $.ajax({
+            url: "{% url 'ajax_load_models' %}",
+            data: {
+                'brand_id': brandId
+            },
+            success: function (data) {
+                $('#id_car_model').html('<option value="">Select Model</option>');
+                $.each(data, function (key, value) {
+                    $('#id_car_model').append(
+                        '<option value="' + value.id + '">' + value.name + '</option>'
+                    );
+                });
+            }
+        });
+    });
+</script>
+
+{% endblock %}
