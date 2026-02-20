@@ -49,13 +49,3 @@ class BookingAdmin(admin.ModelAdmin):
     ordering = ('-created_at',)
 
 
-
-# from django.contrib import admin
-# from .models import Booking
-
-
-# @admin.register(Booking)
-# class BookingAdmin(admin.ModelAdmin):
-#     list_display = ('customer_name', 'vehicle_model', 'service_date', 'status')
-#     list_filter = ('status', 'service_date')
-#     search_fields = ('customer_name', 'vehicle_model')
